@@ -1,0 +1,314 @@
+# Nadine Mohamed (20162200)
+# Version 3.7.1
+###############################################################################
+
+# 3.7 Demarre l'éditeur graphique
+def dessiner(largeur, hauteur, couleurs) :
+    # Pose les dimensions de la fenetre du logiciel (incluant la barre menu)
+    setScreenMode(largeur, hauteur)
+    
+    # Pose des variables locales
+    taille = int(0.1*hauteur)
+    espace = int(0.05*hauteur)
+    #espT = taille + espace
+    hMenu = int(0.2*hauteur)
+    couleurEffacer = couleurs[0]
+    
+    # Pose la couleur de la fenetre au meme couleur d'efface
+    fillRectangle(0, 0, largeur, hauteur, couleurEffacer)
+    # Pose la couleur de la barre menu
+    fillRectangle(0, 0, largeur - 1, hMenu, "#888")
+
+    # Creation des boutons de la barre menu
+    boutons = creerBoutons(couleurs, taille, espace, couleurEffacer)
+    for i in range(0, len(boutons)):
+        
+        # Dessine une bordure noire de 1 pixel pour chaque bouton
+        fillRectangle(abs(boutons[i].coin1.x), abs(boutons[i].coin1.y), 
+                      abs(boutons[i].coin2.x - boutons[i].coin1.x), 
+                      abs(boutons[i].coin2.y - boutons[i].coin1.y), "#000")
+        
+        # Rempli le bouton avec sa couleur respective
+        fillRectangle(boutons[i].coin1.x + 1, boutons[i].coin1.y + 1, 
+                      boutons[i].coin2.x - boutons[i].coin1.x - 2, 
+                      boutons[i].coin2.y - boutons[i].coin1.y - 2, 
+                      boutons[i].couleur)
+    
+        # Dessine un X rouge dans le bouton "effacer"
+        if i == 0 :
+            for x in range(0, taille - 1) :
+                for y in range(1, taille - 1) :
+                    if x == y:
+                        setPixel(boutons[0].coin1.x + x, 
+                                 boutons[0].coin1.y + y, "#f00")
+                        setPixel(boutons[0].coin2.x - 1 - x, 
+                                 boutons[0].coin1.y + y, "#f00")
+
+    # Demarre la processus de dessin
+    traiterProchainClic(boutons)
+    
+    # Tests Unitaires
+    testdessiner()
+
+    
+# 3.6 Calcul si le souris dans la barre du menu ou fenetre de dessin.
+# Modifie la couleur du rectangle flottant ou efface selon le bouton appuye
+def traiterProchainClic(boutons) : 
+    
+    # Par defaut, pose la couleur apres demarrage de l'editeur
+    couleur = "#f00"
+    # Par defaut, Pose l'image de l'ecran vide comme l'image originale
+    imageOriginale = getScreenTbl()
+
+    # Permet d'attendre que l'utilisateur appuie sur bouton de la souris
+    while getMouse().button == 0 :
+        sleep(0.01)
+    
+        # demarre la procedure pendant que le bouton est appuye
+        while getMouse().button == 1 :
+            mouse = getMouse()
+            debut = struct(x = mouse.x, y = mouse.y)
+        
+            # Trouve le position du bouton si souris est dans barre menu
+            if mouse.y < 0.2*hauteur :
+                pos = trouverBouton(boutons, struct(x = mouse.x, y = mouse.y))
+                if pos == None : continue
+            
+                # Restaure l'ecran defaut lorsque bouton "efface" est appuye
+                if pos.effacer == True :
+                    fillRectangle(0, int(0.2*hauteur), int(largeur), 
+                                  int(hauteur - 0.2*hauteur - 1), "#fff")
+                    imageOriginale = getScreenTbl()
+                
+                else : couleur = pos.couleur
+            
+            # Demarre procedure de dessin si souris dans la fenetre de dessin
+            else : 
+                dessinerRectangleFlottant(imageOriginale, debut, couleur)
+
+                
+# 3.5 modifie une section rectangulaire de image
+def ajouterRectangle(image, rectangle, couleur) :
+    for x in range(rectangle.coin1.x, rectangle.coin2.x) :
+        for y in range(rectangle.coin1.y, rectangle.coin2.y) :
+            image[x][y] = couleur
+
+# 3.4 Dessine une section de imageOriginale dans la grille de pixels
+def restaurerImage(imageOriginale, rectangle) :
+    for x in range(rectangle.coin1.x, rectangle.coin2.x) :
+        for y in range(rectangle.coin1.y, rectangle.coin2.y) :
+            setPixel(x, y, imageOriginale[x][y])
+    
+# 3.3 Anime le rectangle flottant quand le bouton de la souris de est enfoncé
+def dessinerRectangleFlottant(imageOriginale, debut, couleur) :
+    hMenu = int(0.2*hauteur)
+    
+    # Active la procedure lorsque bouton de souris enfonce 
+    i = 0
+    while getMouse().button == 1 :
+        sleep(0.01)
+        x = getMouse().x
+        y = getMouse().y
+        
+        # Permet rotation 360 degrees sans depasser barre de menu
+        fillRectangle(min(debut.x, x), max(min(y, debut.y), hMenu), 
+                      abs(x - debut.x), abs(max(y, hMenu) - debut.y), couleur)
+        
+        # Pose un miroir du position du souris apres premiere iteration pour
+        # calculer l'image restaure
+        if i == 0 :
+            fix = struct(x = x, y = y)
+            i += 1
+            
+            # Permit de dessiner des points
+            setPixel(x, y, couleur)
+            continue
+                
+        # Evite restaurer image si dimension carre flottant ne change pas
+        if struct(x = x, y = y) == fix : continue
+        
+            
+        else : 
+            # restauraurer l'image originae du rectangle 1
+            restaurerImage(imageOriginale, 
+                           struct(coin1 = struct(x = min(x, fix.x), 
+                                                 y = min(y, debut.y)), 
+                                  coin2 = struct(x = max(x, fix.x), 
+                                                 y = max(y, debut.y))))
+
+            # restauraurer l'image originae du rectangle 2
+            restaurerImage(imageOriginale, 
+                           struct(coin1 = struct(x = min(x, fix.x, debut.x), 
+                                                 y = min(y, fix.y)), 
+                                  coin2 = struct(x = max(debut.x, fix.x, x), 
+                                                 y = max(y, fix.y))))
+            
+            # mettre a jour miroir souris
+            fix = struct(x = x, y = y)
+        
+    # mettre a jour l'image originale
+    if i > 0 :
+        rectangle = struct(coin1 = struct(x = min(x, debut.x), 
+                                          y = min(y, debut.y)), 
+                           coin2 = struct(x = max(x, debut.x), 
+                                          y = max(y, debut.y)))
+        ajouterRectangle(imageOriginale, rectangle, couleur)
+        
+        
+# 3.2 Retourne l'enregistrement contenu dans le tableau boutons  représentant 
+# le bouton contenant les coordonnées représentée par position
+def trouverBouton(boutons, position) :
+    taille = int(0.1*getScreenHeight())
+    espace = int(0.05*getScreenHeight())
+    espT = taille + espace
+    
+    if boutons[0].coin1.y <= position.y <= boutons[0].coin2.y :
+        
+        # Calcul si position dans un bouton ou espace gris
+        rest = position.x % (espT)
+        if rest <= 0 or rest >= espace : 
+            
+            # Donne l'index du bouton  selon la position horizontale
+            index = position.x // (espT)
+            if index < len(boutons) :
+                return boutons[index] 
+    else : return None
+    
+# 3.1 retourne un tableau d'enregistrements représentant les boutons
+# disponibles dans la barre de menu
+def creerBoutons(couleurs, taille, espace, couleurEffacer):
+    espT = espace + taille
+    
+    # Definit le bouton effacer et l'ajoute a l'index 0 du tableau
+    effacer = struct(coin1 = struct(x = espace, y = espace), 
+                     coin2 = struct(x = espT, y = espT), 
+                     couleur = couleurEffacer, effacer = True)
+    tbl = [effacer]
+    
+    
+    # Ajoute boutons tant qu'il y a de l'espace dans l'ecran
+    for i in range(0, len(couleurs)) :
+        bouton = struct(coin1 = struct(x = espace + (i+1)*espT, y = espace), 
+                        coin2 = struct(x = (2+i)*espT, y = espT), 
+                        couleur = couleurs[i], effacer = False)
+        
+        # Arrete boucle lorsque max nombre de boutons dans l'ecran atteint
+        if bouton.coin2.x + espace <= getScreenWidth() :
+            tbl.append(bouton)
+        else : break
+        
+    return tbl
+
+
+# 3.0 Transforme ecran  en un tableau de tableaux de textes des couleurs '#rgb"
+def getScreenTbl():
+    tbl = []
+    for x in range(0, getScreenWidth()):
+        tblY = []
+        for y in range(0, getScreenHeight()):
+            tblY.append(getPixel(x, y))
+        tbl.append(tblY)
+    return tbl
+    
+###############################################################################
+# TESTS UNITAIRES
+
+def creerBoutonsTest() : 
+
+    # Test 1 : 
+    # valide exemple dans specification et 
+    # valide qu'un bouton est un enregistrement ayant les champs specifies
+    # valide que coin1 et coin2 sont des enregistrement ayant champs specifies
+    boutons = creerBoutons(["#f00"], 12, 6, "#fff")
+    assert boutons == [struct(coin1=struct(x=6, y=6), coin2=struct(x=18, y=18), 
+                              couleur="#fff", effacer=True), 
+                       struct(coin1=struct(x=24, y=6), coin2=struct(x=36,y=18), 
+                              couleur="#f00", effacer=False)] 
+
+    # Test 2 :
+    # valide que coin1 et le coin superieur et coin2 est le coin inferieur
+    # valide qu'un bouton a la bonne taille 
+    boutons = creerBoutons(couleurs, taille, espace, couleurEffacer)
+    for i in range(0, len(boutons)) :
+        assert boutons[i].coin2.x - boutons[i].coin1.x == taille
+        assert boutons[i].coin2.y - boutons[i].coin1.y == taille
+
+    # Test 3 :
+    assert type(taille) and type(espace) == int
+
+    # Test 4 :
+    # valide que l'index 0 du tableau ait toujours le bouton effacer
+    # valide que le bouton effacer a la couleurEffacer
+    boutons = creerBoutons(couleurs, taille, espace, couleurEffacer)
+    effacer = struct(coin1=struct(x=6, y=6), coin2=struct(x=18, y=18), 
+                            couleur=couleurEffacer, effacer=True)
+    assert boutons[0] == effacer
+
+    # Test 5 : 
+    # valide que le nb de boutons ne depasse pas largeur d'ecran
+    # actually maybe not good ?
+    assert boutons[-1].coin2.x + espace <= getScreenWidth()
+
+    # Test 6 : same thing as test 5 ?
+    # valide si un bouton existe pour chaque element de couleurs a moins qu'il
+    # existe plus de couleurs que permis sur l'ecran
+    assert len(couleurs) + 1 >= len(boutons)
+    
+
+def trouverBoutontTest() :
+    taille = int(0.1*getScreenHeight())
+    espace = int(0.05*getScreenHeight())
+    espT = espace + taille
+
+    # Test 1 
+    # valide si position a le bon format
+    assert type(position.x) and type(position.y) == int
+
+    # Test 2
+    position = struct(x= 15, y = 15)
+    assert trouverBouton(boutons, position) == None
+
+    # Test 3
+    position = struct(x= 25, y = 17)
+    bouton = trouverBouton(boutons, position)
+    assert bouton  == struct(coin1=struct(x=24, y=6), coin2=struct(x=36, y=18), 
+                             couleur='#f00',effacer=False)
+
+    # Test 3
+    assert trouverBouton(boutons, struct(x= 0, y = 0)) == None
+
+    # Test 4
+    position = struct(x= espT, y = espT)
+    assert type(trouverBouton(boutons, position)) == list
+
+    # Test 5
+    position = struct(x= espace, y = espace)
+    assert type(trouverBouton(boutons, position)) == list
+
+    # Test 6
+    position = struct(x= len(boutons)*espT, y = 6)
+    assert type(trouverBouton(boutons, position)) == list
+
+    # Test 7
+    position = struct(x= getScreenWidth(), y = espace)
+    assert trouverBouton(boutons, position) == None
+
+    # Test 8
+    position = struct(x= getScreenWidth() + 1, y = espace)
+    assert trouverBouton(boutons, position) == None
+    
+def testDessiner() :
+    creerBoutonsTest()
+    trouverBoutontTest()
+    
+###############################################################################
+
+# Global parameters
+largeur = 180
+hauteur = 120
+couleurs = ["#fff", "#000", "#f00", "#ff0", "#0f0", "#00f", "#f0f"]
+
+# run program
+dessiner(largeur, hauteur, couleurs)
+
+    
